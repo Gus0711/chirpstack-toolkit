@@ -1389,3 +1389,31 @@ select option {
 #mqtt-publish-chevron.open {
   transform: rotate(180deg);
 }
+
+/* New topics badge (floating at bottom of tree pane) */
+.mqtt-new-topics-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  background: rgba(0, 212, 170, 0.15);
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  border-radius: 12px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  transition: background 0.15s, transform 0.15s;
+  white-space: nowrap;
+}
+
+.mqtt-new-topics-badge:hover {
+  background: rgba(0, 212, 170, 0.25);
+}
+
+.mqtt-new-topics-badge.hidden {
+  display: none;
+}

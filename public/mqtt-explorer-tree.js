@@ -12,12 +12,109 @@
   var expandAllBtn = document.getElementById('mqtt-tree-expand-all');
   var collapseAllBtn = document.getElementById('mqtt-tree-collapse-all');
   var clearBtn = document.getElementById('mqtt-tree-clear');
+  var treeContainer = document.getElementById('mqtt-tree-container');
 
   var flatNodes = [];
   var selectedTopic = null;
   var rowPool = [];
   var visibleStart = 0;
   var visibleEnd = 0;
+
+  // ── Scroll stability state ──
+  // Track the topic at the top of the visible area so we can anchor to it
+  var anchorTopic = null;       // fullTopic of the first visible node
+  var anchorOffset = 0;         // pixel offset within that row (scrollTop % ROW_HEIGHT)
+  var prevNodeCount = 0;        // previous flatNodes.length for new-topics detection
+  var newTopicsBelowCount = 0;  // topics added below viewport since last user scroll
+
+  // ── "New topics" indicator ──
+  var newTopicsBadge = document.createElement('div');
+  newTopicsBadge.className = 'mqtt-new-topics-badge hidden';
+  newTopicsBadge.addEventListener('click', function () {
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
+    hideNewTopicsBadge();
+  });
+  treeContainer.style.position = 'relative';
+  treeContainer.appendChild(newTopicsBadge);
+
+  function showNewTopicsBadge(count) {
+    newTopicsBadge.textContent = count + ' new topic' + (count > 1 ? 's' : '') + ' \u2193';
+    newTopicsBadge.classList.remove('hidden');
+  }
+
+  function hideNewTopicsBadge() {
+    newTopicsBelowCount = 0;
+    newTopicsBadge.classList.add('hidden');
+  }
+
+  // ── Snapshot scroll anchor before update ──
+  function snapshotAnchor() {
+    var scrollTop = container.scrollTop;
+    if (scrollTop <= 0 || flatNodes.length === 0) {
+      anchorTopic = null;
+      anchorOffset = 0;
+      return;
+    }
+    var idx = Math.floor(scrollTop / ROW_HEIGHT);
+    idx = Math.min(idx, flatNodes.length - 1);
+    anchorTopic = flatNodes[idx] ? flatNodes[idx].fullTopic : null;
+    anchorOffset = scrollTop - (idx * ROW_HEIGHT);
+  }
+
+  // ── Restore scroll after update using the anchor ──
+  function restoreAnchor(newNodes) {
+    if (!anchorTopic) return; // was at top, no restore needed
+
+    // Find the anchor topic in the new list
+    var newIdx = -1;
+    for (var i = 0; i < newNodes.length; i++) {
+      if (newNodes[i].fullTopic === anchorTopic) {
+        newIdx = i;
+        break;
+      }
+    }
+
+    if (newIdx >= 0) {
+      var targetScroll = newIdx * ROW_HEIGHT + anchorOffset;
+      container.scrollTop = targetScroll;
+    }
+    // If anchor not found (topic was removed/collapsed), keep current scrollTop
+  }
+
+  // ── Detect new topics below viewport ──
+  function detectNewTopicsBelow(oldNodes, newNodes) {
+    // Only track if user has scrolled (not at bottom)
+    var scrollTop = container.scrollTop;
+    var viewHeight = container.clientHeight;
+    var totalHeight = newNodes.length * ROW_HEIGHT;
+    var isAtBottom = (scrollTop + viewHeight) >= (totalHeight - ROW_HEIGHT);
+
+    if (isAtBottom || scrollTop <= 0) {
+      hideNewTopicsBadge();
+      return;
+    }
+
+    // Build set of old topics for fast lookup
+    var oldTopics = {};
+    for (var i = 0; i < oldNodes.length; i++) {
+      oldTopics[oldNodes[i].fullTopic] = true;
+    }
+
+    // Count new topics that are below the visible area
+    var visEnd = Math.ceil((scrollTop + viewHeight) / ROW_HEIGHT);
+    var newBelow = 0;
+    for (var j = visEnd; j < newNodes.length; j++) {
+      if (!oldTopics[newNodes[j].fullTopic]) {
+        newBelow++;
+      }
+    }
+
+    if (newBelow > 0) {
+      newTopicsBelowCount += newBelow;
+      showNewTopicsBadge(newTopicsBelowCount);
+    }
+  }
 
   // ── Virtual scroll rendering ──
   function render() {
@@ -194,6 +291,14 @@
   // ── Event handlers ──
   container.addEventListener('scroll', function () {
     requestAnimationFrame(render);
+
+    // If user scrolls to bottom, dismiss badge
+    var scrollTop = container.scrollTop;
+    var viewHeight = container.clientHeight;
+    var totalHeight = flatNodes.length * ROW_HEIGHT;
+    if ((scrollTop + viewHeight) >= (totalHeight - ROW_HEIGHT)) {
+      hideNewTopicsBadge();
+    }
   });
 
   searchInput.addEventListener('input', debounce(function () {
@@ -213,6 +318,8 @@
     window.MqttExplorer.wsSend({ type: 'clear' });
     flatNodes = [];
     selectedTopic = null;
+    prevNodeCount = 0;
+    hideNewTopicsBadge();
     render();
     if (window.MqttExplorerDetail) {
       window.MqttExplorerDetail.clear();
@@ -221,8 +328,22 @@
 
   // ── Tree update from WS ──
   function onTreeUpdate(nodes) {
+    var oldNodes = flatNodes;
+
+    // 1. Snapshot the current scroll anchor BEFORE changing flatNodes
+    snapshotAnchor();
+
+    // 2. Detect new topics below the viewport (for badge)
+    detectNewTopicsBelow(oldNodes, nodes);
+
+    // 3. Replace data
     flatNodes = nodes;
+
+    // 4. Restore scroll position using anchor, then render
+    restoreAnchor(nodes);
     render();
+
+    prevNodeCount = nodes.length;
   }
 
   // ── Helpers ──
