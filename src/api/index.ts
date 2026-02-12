@@ -17,6 +17,7 @@ import { importServerRoutes } from './import-servers.js';
 import { importRoutes } from './import-routes.js';
 import { exportRoutes } from './export-routes.js';
 import { bulkRoutes } from './bulk-routes.js';
+import { mqttExplorerRoutes } from './mqtt-explorer.js';
 import { addLiveClient, startLiveBroadcast } from '../websocket/live.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -68,6 +69,9 @@ export async function startApi(config: ApiConfig, myDevices: MyDeviceRange[] = [
   await fastify.register(importRoutes);
   await fastify.register(exportRoutes);
   await fastify.register(bulkRoutes);
+
+  // MQTT Explorer routes
+  await fastify.register(mqttExplorerRoutes);
 
   // Device metadata API
   fastify.get('/api/metadata/devices', async () => {

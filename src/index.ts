@@ -9,6 +9,7 @@ import { SessionTracker } from './session/tracker.js';
 import { DeviceMetadataCache } from './metadata/cache.js';
 import { GatewaySync } from './metadata/gateway-sync.js';
 import type { ParsedPacket, MyDeviceRange, OperatorMapping, MqttConfig, ChirpStackApiConfig, Config } from './types.js';
+import { destroyAllConnections } from './mqtt-explorer/manager.js';
 
 const CONFIG_PATH = process.env.CONFIG_PATH ?? './config.toml';
 
@@ -199,6 +200,7 @@ async function shutdown(): Promise<void> {
   try {
     sessionTrackerRef?.stopCleanup();
     gatewaySyncRef?.stop();
+    await destroyAllConnections();
     await disconnectMqtt();
     await closeClickHouse();
   } catch (err) {

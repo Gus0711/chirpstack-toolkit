@@ -1244,3 +1244,148 @@ select option {
   color: var(--accent);
   opacity: 0.7;
 }
+
+/* ============================================
+   MQTT Explorer
+   ============================================ */
+
+/* Tree row */
+.mqtt-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  height: 28px;
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+  border-left: 2px solid transparent;
+}
+
+.mqtt-tree-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mqtt-tree-row.selected {
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
+}
+
+.mqtt-tree-row .tree-arrow {
+  width: 12px;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 8px;
+  text-align: center;
+  transition: transform 0.15s;
+}
+
+.mqtt-tree-row .tree-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.mqtt-tree-row .tree-segment {
+  color: rgba(255, 255, 255, 0.85);
+  flex-shrink: 0;
+}
+
+.mqtt-tree-row .tree-count {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 9px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.mqtt-tree-row .tree-rate {
+  color: var(--accent);
+  font-size: 9px;
+  margin-left: 4px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.mqtt-tree-row .tree-preview {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 10px;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.mqtt-tree-row .tree-retain {
+  color: #f59e0b;
+  font-size: 8px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* JSON syntax highlighting */
+.mqtt-json-view {
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.mqtt-json-key { color: #93c5fd; }
+.mqtt-json-string { color: #86efac; }
+.mqtt-json-number { color: #fbbf24; }
+.mqtt-json-bool { color: #c084fc; }
+.mqtt-json-null { color: rgba(255, 255, 255, 0.3); }
+.mqtt-json-bracket { color: rgba(255, 255, 255, 0.4); }
+.mqtt-json-toggle {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.3);
+  user-select: none;
+}
+.mqtt-json-toggle:hover {
+  color: var(--accent);
+}
+
+/* Diff */
+.mqtt-diff-add {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.mqtt-diff-remove {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.mqtt-diff-line {
+  padding: 0 4px;
+  display: block;
+}
+
+/* Subscription chip */
+.mqtt-sub-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.mqtt-sub-chip button {
+  color: rgba(255, 255, 255, 0.3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.mqtt-sub-chip button:hover {
+  color: #f87171;
+}
+
+/* Publish panel toggle */
+#mqtt-publish-chevron.open {
+  transform: rotate(180deg);
+}

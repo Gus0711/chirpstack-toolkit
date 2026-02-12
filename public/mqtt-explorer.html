@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="mqtt.title">MQTT Explorer - LoRaWAN Analyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <script src="i18n.js"></script>
+</head>
+<body class="text-gray-100 min-h-screen">
+  <div class="flex flex-col h-screen">
+    <!-- Header -->
+    <header class="bg-white/5 border-b border-white/10 flex-shrink-0">
+      <div class="flex items-center justify-between px-6 py-2">
+        <div class="flex items-center gap-6">
+          <h1 class="text-base font-bold text-white" data-i18n="nav.title">LoRaWAN Analyzer</h1>
+          <nav class="flex gap-1">
+            <a href="index.html" class="nav-link px-3 py-1 rounded text-sm flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav.dashboard">Dashboard</span></a>
+            <a href="live.html" class="nav-link px-3 py-1 rounded text-sm flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="1" fill="currentColor"/><path d="M8.6 15.4a5 5 0 010-6.8M15.4 8.6a5 5 0 010 6.8"/></svg><span data-i18n="nav.live">Live Stream</span></a>
+            <a href="management.html" class="nav-link px-3 py-1 rounded text-sm flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span data-i18n="nav.toolkit">Toolkit ChirpStack</span></a>
+            <a href="mqtt-explorer.html" class="nav-link active px-3 py-1 rounded text-sm flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span data-i18n="nav.mqtt_explorer">MQTT Explorer</span></a>
+            <a href="settings.html" class="nav-link px-3 py-1 rounded text-sm flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M2 14h4M10 8h4M18 16h4"/></svg><span data-i18n="nav.settings">Settings</span></a>
+          </nav>
+        </div>
+        <div class="flex items-center gap-1 border border-white/20 rounded overflow-hidden">
+          <button class="lang-btn px-2 py-0.5 text-xs" data-lang="en">EN</button>
+          <button class="lang-btn px-2 py-0.5 text-xs" data-lang="fr">FR</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Connection Bar -->
+    <div class="bg-white/5 border-b border-white/10 px-4 py-2 flex-shrink-0">
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- Profile selector -->
+        <select id="mqtt-profile-select" class="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-white/30 w-36">
+          <option value="" data-i18n="mqtt.new_connection">New connection</option>
+        </select>
+
+        <!-- Connection fields -->
+        <select id="mqtt-protocol" class="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-white focus:outline-none w-20">
+          <option value="mqtt">mqtt</option>
+          <option value="mqtts">mqtts</option>
+          <option value="ws">ws</option>
+          <option value="wss">wss</option>
+        </select>
+        <input type="text" id="mqtt-host" placeholder="Host" class="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 w-40" value="localhost">
+        <input type="number" id="mqtt-port" placeholder="Port" class="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 w-16" value="1883">
+        <input type="text" id="mqtt-user" data-i18n-placeholder="mqtt.username" placeholder="Username" class="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 w-24">
+        <input type="password" id="mqtt-pass" data-i18n-placeholder="mqtt.password" placeholder="Password" class="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 w-24">
+
+        <!-- Connect / Disconnect -->
+        <button id="mqtt-connect-btn" class="px-3 py-1.5 bg-[#00d4aa]/20 hover:bg-[#00d4aa]/30 border border-[#00d4aa]/30 rounded text-xs text-[#00d4aa] font-medium transition-colors" data-i18n="mqtt.connect">Connect</button>
+        <button id="mqtt-disconnect-btn" class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded text-xs text-red-400 font-medium transition-colors hidden" data-i18n="mqtt.disconnect">Disconnect</button>
+
+        <!-- Profile actions -->
+        <button id="mqtt-save-profile-btn" class="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" data-i18n="mqtt.save_profile">Save</button>
+        <button id="mqtt-delete-profile-btn" class="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" data-i18n="common.delete">Delete</button>
+
+        <!-- Status -->
+        <div class="flex items-center gap-2 ml-auto">
+          <span id="mqtt-status-dot" class="w-2.5 h-2.5 rounded-full bg-gray-500"></span>
+          <span id="mqtt-status-text" class="text-xs text-white/50" data-i18n="mqtt.status_disconnected">Disconnected</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subscription bar -->
+    <div id="mqtt-sub-bar" class="bg-white/3 border-b border-white/10 px-4 py-1.5 flex-shrink-0 hidden">
+      <div class="flex items-center gap-3 flex-wrap">
+        <input type="text" id="mqtt-sub-topic" placeholder="#" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 w-48 font-mono">
+        <select id="mqtt-sub-qos" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none w-16">
+          <option value="0">QoS 0</option>
+          <option value="1">QoS 1</option>
+          <option value="2">QoS 2</option>
+        </select>
+        <button id="mqtt-sub-add-btn" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/60 transition-colors" data-i18n="common.add">Add</button>
+        <div class="border-l border-white/10 h-4"></div>
+        <div id="mqtt-sub-list" class="flex items-center gap-1 flex-wrap"></div>
+        <div class="border-l border-white/10 h-4 ml-auto"></div>
+        <!-- Stats -->
+        <div class="flex items-center gap-3 text-xs text-white/50">
+          <span><span id="mqtt-stat-msg-total" class="text-white/80">0</span> <span data-i18n="mqtt.messages">msgs</span></span>
+          <span><span id="mqtt-stat-msg-sec" class="text-white/80">0</span>/s</span>
+          <span><span id="mqtt-stat-topics" class="text-white/80">0</span> <span data-i18n="mqtt.topics">topics</span></span>
+          <span><span id="mqtt-stat-bytes" class="text-white/80">0</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content: split panes -->
+    <div class="flex-1 flex overflow-hidden" id="mqtt-main">
+      <!-- Left: Topic Tree -->
+      <div id="mqtt-tree-pane" class="flex flex-col overflow-hidden" style="width: 40%; min-width: 200px;">
+        <!-- Tree toolbar -->
+        <div class="flex items-center gap-2 px-3 py-1.5 border-b border-white/10 bg-white/3">
+          <input type="text" id="mqtt-tree-search" data-i18n-placeholder="mqtt.search_topics" placeholder="Search topics..." class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 flex-1 font-mono">
+          <button id="mqtt-tree-expand-all" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" title="Expand All">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <button id="mqtt-tree-collapse-all" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" title="Collapse All">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M5 15l7-7 7 7"/></svg>
+          </button>
+          <button id="mqtt-tree-clear" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-red-400/70 transition-colors" data-i18n="mqtt.clear">Clear</button>
+        </div>
+        <!-- Virtual scroll container -->
+        <div id="mqtt-tree-container" class="flex-1 overflow-auto font-mono text-xs">
+          <div id="mqtt-tree-viewport" class="relative" style="overflow-y: auto; height: 100%;">
+            <div id="mqtt-tree-spacer"></div>
+            <div id="mqtt-tree-rows"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Split handle -->
+      <div id="mqtt-split-handle" class="w-1 bg-white/10 hover:bg-[#00d4aa]/30 cursor-col-resize flex-shrink-0 transition-colors"></div>
+
+      <!-- Right: Detail Panel -->
+      <div id="mqtt-detail-pane" class="flex-1 flex flex-col overflow-hidden">
+        <!-- Detail content -->
+        <div id="mqtt-detail-content" class="flex-1 overflow-auto p-4">
+          <div id="mqtt-detail-empty" class="flex items-center justify-center h-full text-white/20 text-sm" data-i18n="mqtt.select_topic">Select a topic to view details</div>
+          <div id="mqtt-detail-view" class="hidden space-y-4">
+            <!-- Topic header -->
+            <div class="flex items-center justify-between">
+              <h3 id="mqtt-detail-topic" class="text-sm font-medium text-white font-mono break-all"></h3>
+              <div id="mqtt-detail-meta" class="flex items-center gap-3 text-xs text-white/50 flex-shrink-0"></div>
+            </div>
+            <!-- Payload -->
+            <div class="panel">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-white/50 uppercase tracking-wider" data-i18n="mqtt.payload">Payload</span>
+                <span id="mqtt-detail-format" class="text-xs px-2 py-0.5 rounded bg-white/10 text-white/60"></span>
+              </div>
+              <div id="mqtt-detail-payload" class="mqtt-json-view text-xs overflow-auto max-h-64 p-2 bg-black/20 rounded font-mono"></div>
+            </div>
+            <!-- History sparkline -->
+            <div id="mqtt-detail-history-section" class="panel hidden">
+              <span class="text-xs text-white/50 uppercase tracking-wider mb-2 block" data-i18n="mqtt.history">History</span>
+              <div style="height: 60px;">
+                <canvas id="mqtt-detail-sparkline"></canvas>
+              </div>
+            </div>
+            <!-- Diff -->
+            <div id="mqtt-detail-diff-section" class="panel hidden">
+              <span class="text-xs text-white/50 uppercase tracking-wider mb-2 block" data-i18n="mqtt.diff">Diff</span>
+              <div id="mqtt-detail-diff" class="text-xs overflow-auto max-h-48 p-2 bg-black/20 rounded font-mono"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Publish panel (collapsible) -->
+        <div id="mqtt-publish-panel" class="border-t border-white/10 bg-white/3 hidden">
+          <div class="flex items-center justify-between px-4 py-1.5 cursor-pointer" id="mqtt-publish-toggle">
+            <span class="text-xs text-white/50 uppercase tracking-wider" data-i18n="mqtt.publish">Publish</span>
+            <svg id="mqtt-publish-chevron" class="w-3 h-3 text-white/30 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M5 15l7-7 7 7"/></svg>
+          </div>
+          <div id="mqtt-publish-body" class="px-4 pb-3 hidden">
+            <div class="flex items-center gap-2 mb-2">
+              <input type="text" id="mqtt-pub-topic" placeholder="Topic" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 flex-1 font-mono">
+              <select id="mqtt-pub-qos" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none w-16">
+                <option value="0">QoS 0</option>
+                <option value="1">QoS 1</option>
+                <option value="2">QoS 2</option>
+              </select>
+              <label class="flex items-center gap-1 text-xs text-white/50">
+                <input type="checkbox" id="mqtt-pub-retain" class="rounded">
+                Retain
+              </label>
+            </div>
+            <div class="flex items-center gap-2">
+              <textarea id="mqtt-pub-payload" placeholder="Payload" rows="2" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 flex-1 font-mono resize-none"></textarea>
+              <div class="flex flex-col gap-1">
+                <button id="mqtt-pub-send-btn" class="px-3 py-1.5 bg-[#00d4aa]/20 hover:bg-[#00d4aa]/30 border border-[#00d4aa]/30 rounded text-xs text-[#00d4aa] font-medium transition-colors" data-i18n="mqtt.send">Send</button>
+                <button id="mqtt-pub-save-tpl-btn" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" data-i18n="mqtt.save_tpl">Tpl</button>
+              </div>
+            </div>
+            <!-- Templates -->
+            <div class="flex items-center gap-2 mt-2">
+              <select id="mqtt-pub-template-select" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none flex-1">
+                <option value="" data-i18n="mqtt.no_templates">No templates</option>
+              </select>
+              <button id="mqtt-pub-load-tpl-btn" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" data-i18n="common.load">Load</button>
+              <button id="mqtt-pub-del-tpl-btn" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-red-400/70 transition-colors" data-i18n="common.delete">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="mqtt-explorer.js"></script>
+  <script src="mqtt-explorer-tree.js"></script>
+  <script src="mqtt-explorer-detail.js"></script>
+  <script src="mqtt-explorer-publish.js"></script>
+</body>
+</html>

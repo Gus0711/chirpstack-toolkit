@@ -275,3 +275,47 @@ export interface ChirpStackError {
   message: string;
   detail?: string;
 }
+
+// ============================================
+// MQTT Explorer Types
+// ============================================
+
+export interface MqttExplorerConnectParams {
+  host: string;
+  port: number;
+  protocol: 'mqtt' | 'mqtts' | 'ws' | 'wss';
+  username?: string;
+  password?: string;
+  clientId?: string;
+  cleanSession?: boolean;
+  subscriptions?: string[];
+}
+
+export interface MqttExplorerConnectionInfo {
+  id: string;
+  host: string;
+  port: number;
+  status: 'connecting' | 'connected' | 'disconnected' | 'error';
+  error?: string;
+  connectedAt: number | null;
+  subscriptions: string[];
+  stats: MqttExplorerStats;
+}
+
+export interface MqttExplorerStats {
+  messagesTotal: number;
+  messagesPerSecond: number;
+  topicCount: number;
+  bytesTotal: number;
+}
+
+export interface MqttExplorerMessage {
+  topic: string;
+  payload: string;
+  payloadText: string;
+  format: 'json' | 'text' | 'hex' | 'base64';
+  qos: number;
+  retain: boolean;
+  timestamp: number;
+  size: number;
+}
