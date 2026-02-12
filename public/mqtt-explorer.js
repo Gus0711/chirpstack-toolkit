@@ -34,6 +34,22 @@
   var elStatTopics = document.getElementById('mqtt-stat-topics');
   var elStatBytes = document.getElementById('mqtt-stat-bytes');
 
+  // Broker display in toolbar
+  var elBrokerDisplay = document.getElementById('mqtt-broker-display');
+  var elBrokerDot = document.getElementById('mqtt-broker-dot');
+  var elBrokerLabel = document.getElementById('mqtt-broker-label');
+
+  // Status bar
+  var elStatusBar = document.getElementById('mqtt-status-bar');
+  var elStatusBarHost = document.getElementById('mqtt-statusbar-host');
+  var elStatusBarDot = document.getElementById('mqtt-statusbar-dot');
+  var elStatusBarUptime = document.getElementById('mqtt-statusbar-uptime');
+  var elStatusBarLastMsg = document.getElementById('mqtt-statusbar-lastmsg');
+
+  var connectedAt = null;
+  var lastMessageTime = null;
+  var uptimeInterval = null;
+
   // ── Profile management ──
   function loadProfiles() {
     try {
@@ -209,6 +225,37 @@
     elSubBar.classList.toggle('hidden', !connected);
     elPublishPanel.classList.toggle('hidden', !connected);
 
+    // Broker display in toolbar
+    if (connected) {
+      var brokerStr = elHost.value + ':' + elPort.value;
+      elBrokerLabel.textContent = brokerStr;
+      elBrokerDot.className = 'w-2 h-2 rounded-full bg-green-500';
+      elBrokerDisplay.classList.remove('hidden');
+      elBrokerDisplay.classList.add('flex');
+    } else if (newStatus === 'connecting') {
+      elBrokerLabel.textContent = elHost.value + ':' + elPort.value;
+      elBrokerDot.className = 'w-2 h-2 rounded-full bg-yellow-500 animate-pulse';
+      elBrokerDisplay.classList.remove('hidden');
+      elBrokerDisplay.classList.add('flex');
+    } else {
+      elBrokerDisplay.classList.add('hidden');
+      elBrokerDisplay.classList.remove('flex');
+    }
+
+    // Status bar
+    if (connected) {
+      elStatusBar.classList.remove('hidden');
+      elStatusBarHost.textContent = elHost.value + ':' + elPort.value;
+      elStatusBarDot.className = 'w-2 h-2 rounded-full bg-green-500';
+      if (!connectedAt) connectedAt = Date.now();
+      startUptimeTimer();
+    } else {
+      elStatusBar.classList.add('hidden');
+      connectedAt = null;
+      lastMessageTime = null;
+      stopUptimeTimer();
+    }
+
     // Disable inputs while connected
     [elHost, elPort, elProtocol, elUser, elPass].forEach(function (el) {
       el.disabled = connected || newStatus === 'connecting';
@@ -216,12 +263,40 @@
     });
   }
 
+  // ── Uptime timer ──
+  function startUptimeTimer() {
+    if (uptimeInterval) return;
+    uptimeInterval = setInterval(updateUptime, 1000);
+    updateUptime();
+  }
+
+  function stopUptimeTimer() {
+    if (uptimeInterval) { clearInterval(uptimeInterval); uptimeInterval = null; }
+  }
+
+  function updateUptime() {
+    if (!connectedAt) return;
+    var elapsed = Math.floor((Date.now() - connectedAt) / 1000);
+    var h = Math.floor(elapsed / 3600);
+    var m = Math.floor((elapsed % 3600) / 60);
+    var s = elapsed % 60;
+    elStatusBarUptime.textContent = h + ':' + pad2(m) + ':' + pad2(s);
+  }
+
+  function pad2(n) { return n < 10 ? '0' + n : String(n); }
+
   // ── Stats ──
   function updateStats(msg) {
     elStatMsgTotal.textContent = formatNumber(msg.messagesTotal);
     elStatMsgSec.textContent = msg.messagesPerSec;
     elStatTopics.textContent = formatNumber(msg.topicCount);
     elStatBytes.textContent = formatBytes(msg.bytesTotal);
+
+    // Update last message time in status bar
+    if (msg.messagesTotal > 0) {
+      lastMessageTime = Date.now();
+      elStatusBarLastMsg.textContent = new Date(lastMessageTime).toLocaleTimeString();
+    }
   }
 
   function formatNumber(n) {

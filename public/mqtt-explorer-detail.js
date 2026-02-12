@@ -1,4 +1,4 @@
-// MQTT Explorer — Detail panel (JSON renderer, diff, sparklines)
+// MQTT Explorer — Detail panel (tabs, JSON renderer, diff, sparklines)
 (function () {
   'use strict';
 
@@ -9,13 +9,56 @@
   var elFormat = document.getElementById('mqtt-detail-format');
   var elPayload = document.getElementById('mqtt-detail-payload');
   var elHistorySection = document.getElementById('mqtt-detail-history-section');
+  var elHistoryEmpty = document.getElementById('mqtt-detail-history-empty');
   var elDiffSection = document.getElementById('mqtt-detail-diff-section');
+  var elDiffEmpty = document.getElementById('mqtt-detail-diff-empty');
   var elDiff = document.getElementById('mqtt-detail-diff');
   var sparklineCanvas = document.getElementById('mqtt-detail-sparkline');
+  var elCopyBtn = document.getElementById('mqtt-detail-copy-btn');
+
+  // Tabs
+  var tabs = document.querySelectorAll('.mqtt-detail-tab');
+  var panels = {
+    payload: document.getElementById('mqtt-panel-payload'),
+    history: document.getElementById('mqtt-panel-history'),
+    diff: document.getElementById('mqtt-panel-diff'),
+  };
+  var tabHistory = document.getElementById('mqtt-tab-history');
+  var tabDiff = document.getElementById('mqtt-tab-diff');
+  var activeTab = 'payload';
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      var target = tab.dataset.tab;
+      if (!target || target === activeTab) return;
+      switchTab(target);
+    });
+  });
+
+  function switchTab(name) {
+    activeTab = name;
+    tabs.forEach(function (t) {
+      t.classList.toggle('active', t.dataset.tab === name);
+    });
+    Object.keys(panels).forEach(function (key) {
+      panels[key].classList.toggle('hidden', key !== name);
+    });
+  }
+
+  // Copy button
+  elCopyBtn.addEventListener('click', function () {
+    if (!lastPayloadText) return;
+    copyToClipboard(lastPayloadText);
+    // Brief visual feedback
+    elCopyBtn.classList.add('text-[#00d4aa]');
+    setTimeout(function () { elCopyBtn.classList.remove('text-[#00d4aa]'); }, 800);
+  });
 
   var sparklineChart = null;
   var currentTopic = null;
   var lastPayloadText = null;
+  var hasDiff = false;
+  var hasHistory = false;
 
   function onMessage(msg) {
     currentTopic = msg.topic;
@@ -36,7 +79,7 @@
       addMetaTag('#' + msg.messageCount);
     }
 
-    // Copy buttons
+    // Copy topic button in meta
     var copyTopicBtn = document.createElement('button');
     copyTopicBtn.className = 'text-white/30 hover:text-white/60 transition-colors';
     copyTopicBtn.title = t('mqtt.copy_topic');
@@ -60,23 +103,38 @@
     // Diff
     var prevText = msg.previousPayloadText || previousText;
     if (prevText && prevText !== msg.payloadText) {
+      hasDiff = true;
       elDiffSection.classList.remove('hidden');
+      elDiffEmpty.classList.add('hidden');
       renderDiff(elDiff, prevText, msg.payloadText, msg.format);
+      tabDiff.classList.add('has-content');
     } else {
+      hasDiff = false;
       elDiffSection.classList.add('hidden');
+      elDiffEmpty.classList.remove('hidden');
+      tabDiff.classList.remove('has-content');
     }
 
     // Value history sparkline
     if (msg.valueHistory && msg.valueHistory.length > 1) {
       var hasValues = msg.valueHistory.some(function (v) { return v.value !== null; });
       if (hasValues) {
+        hasHistory = true;
         elHistorySection.classList.remove('hidden');
+        elHistoryEmpty.classList.add('hidden');
         renderSparkline(msg.valueHistory);
+        tabHistory.classList.add('has-content');
       } else {
+        hasHistory = false;
         elHistorySection.classList.add('hidden');
+        elHistoryEmpty.classList.remove('hidden');
+        tabHistory.classList.remove('has-content');
       }
     } else {
+      hasHistory = false;
       elHistorySection.classList.add('hidden');
+      elHistoryEmpty.classList.remove('hidden');
+      tabHistory.classList.remove('has-content');
     }
   }
 
@@ -178,7 +236,7 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  // ── Diff renderer ──
+  // ── Diff renderer — GitHub style ──
   function renderDiff(container, oldText, newText, format) {
     container.innerHTML = '';
     var oldLines, newLines;
@@ -191,28 +249,55 @@
       newLines = newText.split('\n');
     }
 
+    var oldIdx = 1;
+    var newIdx = 1;
     var maxLen = Math.max(oldLines.length, newLines.length);
+
     for (var i = 0; i < maxLen; i++) {
       var oldLine = i < oldLines.length ? oldLines[i] : undefined;
       var newLine = i < newLines.length ? newLines[i] : undefined;
 
       if (oldLine === newLine) {
-        addDiffLine(container, '  ' + (newLine || ''), '');
+        addDiffLine(container, oldIdx, newIdx, ' ', oldLine || '', 'mqtt-diff-ctx');
+        oldIdx++;
+        newIdx++;
       } else {
         if (oldLine !== undefined) {
-          addDiffLine(container, '- ' + oldLine, 'mqtt-diff-remove');
+          addDiffLine(container, oldIdx, null, '-', oldLine, 'mqtt-diff-remove');
+          oldIdx++;
         }
         if (newLine !== undefined) {
-          addDiffLine(container, '+ ' + newLine, 'mqtt-diff-add');
+          addDiffLine(container, null, newIdx, '+', newLine, 'mqtt-diff-add');
+          newIdx++;
         }
       }
     }
   }
 
-  function addDiffLine(container, text, className) {
-    var line = document.createElement('span');
+  function addDiffLine(container, oldLn, newLn, marker, text, className) {
+    var line = document.createElement('div');
     line.className = 'mqtt-diff-line ' + className;
-    line.textContent = text;
+
+    var lnOld = document.createElement('span');
+    lnOld.className = 'mqtt-diff-ln';
+    lnOld.textContent = oldLn != null ? String(oldLn) : '';
+
+    var lnNew = document.createElement('span');
+    lnNew.className = 'mqtt-diff-ln';
+    lnNew.textContent = newLn != null ? String(newLn) : '';
+
+    var markerEl = document.createElement('span');
+    markerEl.className = 'mqtt-diff-marker';
+    markerEl.textContent = marker;
+
+    var textEl = document.createElement('span');
+    textEl.className = 'mqtt-diff-text';
+    textEl.textContent = text;
+
+    line.appendChild(lnOld);
+    line.appendChild(lnNew);
+    line.appendChild(markerEl);
+    line.appendChild(textEl);
     container.appendChild(line);
   }
 
@@ -229,6 +314,7 @@
 
     if (data.length < 2) {
       elHistorySection.classList.add('hidden');
+      elHistoryEmpty.classList.remove('hidden');
       return;
     }
 
@@ -270,10 +356,15 @@
   function clear() {
     currentTopic = null;
     lastPayloadText = null;
+    hasDiff = false;
+    hasHistory = false;
     elEmpty.classList.remove('hidden');
     elView.classList.add('hidden');
     elDiffSection.classList.add('hidden');
     elHistorySection.classList.add('hidden');
+    tabDiff.classList.remove('has-content');
+    tabHistory.classList.remove('has-content');
+    switchTab('payload');
     if (sparklineChart) {
       sparklineChart.destroy();
       sparklineChart = null;

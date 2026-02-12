@@ -1263,12 +1263,28 @@ select option {
 }
 
 .mqtt-tree-row:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .mqtt-tree-row.selected {
-  background: var(--accent-dim);
+  background: rgba(0, 212, 170, 0.12);
   border-left-color: var(--accent);
+}
+.mqtt-tree-row.selected .tree-segment {
+  color: #fff;
+}
+
+/* Tree indent guide lines */
+.tree-indent {
+  position: relative;
+  display: inline-block;
+}
+.tree-indent-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .mqtt-tree-row .tree-arrow {
@@ -1284,9 +1300,25 @@ select option {
   transform: rotate(90deg);
 }
 
+/* Activity badge */
+.tree-activity {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 2px;
+  transition: background 0.3s;
+}
+.tree-activity.activity-hot  { background: #4ade80; }
+.tree-activity.activity-warm { background: #f59e0b; }
+.tree-activity.activity-cold { background: rgba(255, 255, 255, 0.12); }
+
 .mqtt-tree-row .tree-segment {
   color: rgba(255, 255, 255, 0.85);
   flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
 }
 
 .mqtt-tree-row .tree-count {
@@ -1320,43 +1352,114 @@ select option {
   margin-left: 4px;
 }
 
-/* JSON syntax highlighting */
+/* Detail panel tabs */
+.mqtt-detail-tab {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.mqtt-detail-tab:hover { color: rgba(255, 255, 255, 0.7); }
+.mqtt-detail-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.mqtt-detail-tab.has-content::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-left: 4px;
+}
+
+/* JSON syntax highlighting — VS Code Dark+ theme */
 .mqtt-json-view {
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
 }
 
-.mqtt-json-key { color: #93c5fd; }
-.mqtt-json-string { color: #86efac; }
-.mqtt-json-number { color: #fbbf24; }
-.mqtt-json-bool { color: #c084fc; }
-.mqtt-json-null { color: rgba(255, 255, 255, 0.3); }
-.mqtt-json-bracket { color: rgba(255, 255, 255, 0.4); }
+.mqtt-json-key { color: #9CDCFE; }
+.mqtt-json-string { color: #CE9178; }
+.mqtt-json-number { color: #B5CEA8; }
+.mqtt-json-bool { color: #569CD6; }
+.mqtt-json-null { color: #808080; }
+.mqtt-json-bracket { color: rgba(255, 255, 255, 0.45); }
 .mqtt-json-toggle {
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.35);
   user-select: none;
 }
 .mqtt-json-toggle:hover {
   color: var(--accent);
 }
 
-/* Diff */
-.mqtt-diff-add {
-  color: #4ade80;
-  background: rgba(74, 222, 128, 0.08);
-}
-
-.mqtt-diff-remove {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.08);
+/* Diff — GitHub style */
+.mqtt-diff-container {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .mqtt-diff-line {
-  padding: 0 4px;
-  display: block;
+  display: flex;
+  align-items: stretch;
+  min-height: 20px;
+  line-height: 20px;
 }
+
+.mqtt-diff-ln {
+  width: 36px;
+  text-align: right;
+  padding: 0 6px;
+  color: rgba(255, 255, 255, 0.2);
+  user-select: none;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+.mqtt-diff-marker {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.mqtt-diff-text {
+  flex: 1;
+  padding: 0 8px 0 4px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.mqtt-diff-line.mqtt-diff-add {
+  background: rgba(46, 160, 67, 0.15);
+  color: #7ee787;
+}
+.mqtt-diff-line.mqtt-diff-add .mqtt-diff-ln { color: rgba(126, 231, 135, 0.3); }
+.mqtt-diff-line.mqtt-diff-add .mqtt-diff-marker { color: #7ee787; }
+
+.mqtt-diff-line.mqtt-diff-remove {
+  background: rgba(248, 81, 73, 0.15);
+  color: #ffa198;
+}
+.mqtt-diff-line.mqtt-diff-remove .mqtt-diff-ln { color: rgba(255, 161, 152, 0.3); }
+.mqtt-diff-line.mqtt-diff-remove .mqtt-diff-marker { color: #ffa198; }
+
+.mqtt-diff-line.mqtt-diff-ctx {
+  color: rgba(255, 255, 255, 0.5);
+}
+.mqtt-diff-line.mqtt-diff-ctx .mqtt-diff-marker { color: rgba(255, 255, 255, 0.15); }
 
 /* Subscription chip */
 .mqtt-sub-chip {
@@ -1385,10 +1488,37 @@ select option {
   color: #f87171;
 }
 
+/* Publish drawer (slide-up) */
+.mqtt-publish-drawer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  flex-shrink: 0;
+  transform: translateY(0);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+  animation: mqtt-drawer-slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes mqtt-drawer-slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
 /* Publish panel toggle */
 #mqtt-publish-chevron.open {
   transform: rotate(180deg);
 }
+
+/* Status bar */
+.mqtt-status-bar {
+  flex-shrink: 0;
+  padding: 3px 16px;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+}
+.mqtt-status-bar.hidden { display: none; }
 
 /* New topics badge (floating at bottom of tree pane) */
 .mqtt-new-topics-badge {

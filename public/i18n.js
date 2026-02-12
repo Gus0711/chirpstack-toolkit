@@ -594,6 +594,8 @@
       'mqtt.copy_topic': 'Copy topic',
       'mqtt.copy_payload': 'Copy payload',
       'mqtt.retained': 'Retained',
+      'mqtt.uptime': 'Uptime:',
+      'mqtt.last_msg': 'Last msg:',
     },
 
     fr: {
@@ -1178,6 +1180,8 @@
       'mqtt.copy_topic': 'Copier le topic',
       'mqtt.copy_payload': 'Copier le payload',
       'mqtt.retained': 'Retenu',
+      'mqtt.uptime': 'Uptime :',
+      'mqtt.last_msg': 'Dernier msg :',
     },
   };
 

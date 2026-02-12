@@ -127,9 +127,6 @@
     var start = Math.max(0, firstVisible - OVERSCAN);
     var end = Math.min(flatNodes.length, Math.ceil((scrollTop + viewHeight) / ROW_HEIGHT) + OVERSCAN);
 
-    // DEBUG — remove after confirming fix
-    console.log('scrollTop:', scrollTop, 'firstVisible:', firstVisible, 'row0 translateY:', start * 28, 'totalNodes:', flatNodes.length, 'viewHeight:', viewHeight);
-
     visibleStart = start;
     visibleEnd = end;
 
@@ -157,6 +154,8 @@
     }
   }
 
+  var MAX_SEGMENT_LEN = 20;
+
   function createRow() {
     var el = document.createElement('div');
     el.className = 'mqtt-tree-row';
@@ -167,6 +166,9 @@
     var arrow = document.createElement('span');
     arrow.className = 'tree-arrow';
     arrow.textContent = '\u25B6';
+
+    var activity = document.createElement('span');
+    activity.className = 'tree-activity';
 
     var segment = document.createElement('span');
     segment.className = 'tree-segment';
@@ -186,6 +188,7 @@
 
     el.appendChild(indent);
     el.appendChild(arrow);
+    el.appendChild(activity);
     el.appendChild(segment);
     el.appendChild(countEl);
     el.appendChild(rateEl);
@@ -223,6 +226,7 @@
       el: el,
       indent: indent,
       arrow: arrow,
+      activity: activity,
       segment: segment,
       countEl: countEl,
       rateEl: rateEl,
@@ -241,9 +245,18 @@
     r.el.dataset.expanded = String(node.expanded);
     r.el.dataset.hasChildren = String(node.hasChildren);
 
-    // Indent
-    r.indent.style.width = (node.depth * 16) + 'px';
+    // Indent with guide lines
+    var indentWidth = node.depth * 16;
+    r.indent.style.width = indentWidth + 'px';
     r.indent.style.flexShrink = '0';
+    // Render guide lines (one per depth level)
+    r.indent.innerHTML = '';
+    for (var g = 0; g < node.depth; g++) {
+      var guide = document.createElement('span');
+      guide.className = 'tree-indent-guide';
+      guide.style.left = (g * 16 + 7) + 'px';
+      r.indent.appendChild(guide);
+    }
 
     // Arrow
     if (node.hasChildren) {
@@ -253,8 +266,29 @@
       r.arrow.style.visibility = 'hidden';
     }
 
-    // Segment
-    r.segment.textContent = node.segment;
+    // Activity badge
+    if (node.lastReceived > 0) {
+      var age = (Date.now() - node.lastReceived) / 1000;
+      r.activity.style.display = '';
+      if (age < 10) {
+        r.activity.className = 'tree-activity activity-hot';
+      } else if (age < 60) {
+        r.activity.className = 'tree-activity activity-warm';
+      } else {
+        r.activity.className = 'tree-activity activity-cold';
+      }
+    } else {
+      r.activity.style.display = 'none';
+    }
+
+    // Segment (truncate long names, show full topic in tooltip)
+    if (node.segment.length > MAX_SEGMENT_LEN) {
+      r.segment.textContent = node.segment.substring(0, MAX_SEGMENT_LEN) + '\u2026';
+      r.segment.title = node.fullTopic;
+    } else {
+      r.segment.textContent = node.segment;
+      r.segment.title = '';
+    }
 
     // Count
     if (node.messageCount > 0) {

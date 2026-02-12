@@ -59,8 +59,12 @@
         <button id="mqtt-save-profile-btn" class="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" data-i18n="mqtt.save_profile">Save</button>
         <button id="mqtt-delete-profile-btn" class="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" data-i18n="common.delete">Delete</button>
 
-        <!-- Status -->
-        <div class="flex items-center gap-2 ml-auto">
+        <!-- Status + broker display -->
+        <div class="flex items-center gap-3 ml-auto">
+          <div id="mqtt-broker-display" class="hidden flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/5 border border-white/10">
+            <span id="mqtt-broker-dot" class="w-2 h-2 rounded-full bg-green-500"></span>
+            <span id="mqtt-broker-label" class="text-xs text-white/70 font-mono"></span>
+          </div>
           <span id="mqtt-status-dot" class="w-2.5 h-2.5 rounded-full bg-gray-500"></span>
           <span id="mqtt-status-text" class="text-xs text-white/50" data-i18n="mqtt.status_disconnected">Disconnected</span>
         </div>
@@ -120,73 +124,107 @@
       <!-- Right: Detail Panel -->
       <div id="mqtt-detail-pane" class="flex-1 flex flex-col overflow-hidden">
         <!-- Detail content -->
-        <div id="mqtt-detail-content" class="flex-1 overflow-auto p-4">
+        <div id="mqtt-detail-content" class="flex-1 overflow-hidden flex flex-col">
           <div id="mqtt-detail-empty" class="flex items-center justify-center h-full text-white/20 text-sm" data-i18n="mqtt.select_topic">Select a topic to view details</div>
-          <div id="mqtt-detail-view" class="hidden space-y-4">
+          <div id="mqtt-detail-view" class="hidden flex flex-col flex-1 overflow-hidden">
             <!-- Topic header -->
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between px-4 pt-3 pb-2">
               <h3 id="mqtt-detail-topic" class="text-sm font-medium text-white font-mono break-all"></h3>
               <div id="mqtt-detail-meta" class="flex items-center gap-3 text-xs text-white/50 flex-shrink-0"></div>
             </div>
-            <!-- Payload -->
-            <div class="panel">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs text-white/50 uppercase tracking-wider" data-i18n="mqtt.payload">Payload</span>
-                <span id="mqtt-detail-format" class="text-xs px-2 py-0.5 rounded bg-white/10 text-white/60"></span>
-              </div>
-              <div id="mqtt-detail-payload" class="mqtt-json-view text-xs overflow-auto max-h-64 p-2 bg-black/20 rounded font-mono"></div>
+            <!-- Tabs -->
+            <div class="flex items-center gap-0 px-4 border-b border-white/10">
+              <button class="mqtt-detail-tab active" data-tab="payload">
+                <span data-i18n="mqtt.payload">Payload</span>
+                <span id="mqtt-detail-format" class="text-[10px] px-1.5 py-0 rounded bg-white/10 text-white/50 ml-1.5"></span>
+              </button>
+              <button class="mqtt-detail-tab" data-tab="history" id="mqtt-tab-history">
+                <span data-i18n="mqtt.history">History</span>
+              </button>
+              <button class="mqtt-detail-tab" data-tab="diff" id="mqtt-tab-diff">
+                <span data-i18n="mqtt.diff">Diff</span>
+              </button>
+              <div class="flex-1"></div>
+              <button id="mqtt-detail-copy-btn" class="text-white/30 hover:text-white/70 transition-colors p-1 rounded hover:bg-white/5" title="Copy payload">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
             </div>
-            <!-- History sparkline -->
-            <div id="mqtt-detail-history-section" class="panel hidden">
-              <span class="text-xs text-white/50 uppercase tracking-wider mb-2 block" data-i18n="mqtt.history">History</span>
-              <div style="height: 60px;">
-                <canvas id="mqtt-detail-sparkline"></canvas>
+            <!-- Tab panels -->
+            <div class="flex-1 overflow-auto">
+              <div id="mqtt-panel-payload" class="mqtt-detail-panel p-4">
+                <div id="mqtt-detail-payload" class="mqtt-json-view text-xs overflow-auto p-3 bg-black/20 rounded font-mono"></div>
               </div>
-            </div>
-            <!-- Diff -->
-            <div id="mqtt-detail-diff-section" class="panel hidden">
-              <span class="text-xs text-white/50 uppercase tracking-wider mb-2 block" data-i18n="mqtt.diff">Diff</span>
-              <div id="mqtt-detail-diff" class="text-xs overflow-auto max-h-48 p-2 bg-black/20 rounded font-mono"></div>
+              <div id="mqtt-panel-history" class="mqtt-detail-panel hidden p-4">
+                <div id="mqtt-detail-history-section" class="hidden">
+                  <div style="height: 120px;">
+                    <canvas id="mqtt-detail-sparkline"></canvas>
+                  </div>
+                </div>
+                <div id="mqtt-detail-history-empty" class="flex items-center justify-center py-8 text-white/20 text-xs">No numeric history available</div>
+              </div>
+              <div id="mqtt-panel-diff" class="mqtt-detail-panel hidden p-4">
+                <div id="mqtt-detail-diff-section" class="hidden">
+                  <div id="mqtt-detail-diff" class="mqtt-diff-container text-xs overflow-auto rounded font-mono"></div>
+                </div>
+                <div id="mqtt-detail-diff-empty" class="flex items-center justify-center py-8 text-white/20 text-xs">No changes detected yet</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Publish panel (collapsible) -->
-        <div id="mqtt-publish-panel" class="border-t border-white/10 bg-white/3 hidden">
-          <div class="flex items-center justify-between px-4 py-1.5 cursor-pointer" id="mqtt-publish-toggle">
-            <span class="text-xs text-white/50 uppercase tracking-wider" data-i18n="mqtt.publish">Publish</span>
-            <svg id="mqtt-publish-chevron" class="w-3 h-3 text-white/30 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M5 15l7-7 7 7"/></svg>
-          </div>
-          <div id="mqtt-publish-body" class="px-4 pb-3 hidden">
-            <div class="flex items-center gap-2 mb-2">
-              <input type="text" id="mqtt-pub-topic" placeholder="Topic" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 flex-1 font-mono">
-              <select id="mqtt-pub-qos" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none w-16">
-                <option value="0">QoS 0</option>
-                <option value="1">QoS 1</option>
-                <option value="2">QoS 2</option>
-              </select>
-              <label class="flex items-center gap-1 text-xs text-white/50">
-                <input type="checkbox" id="mqtt-pub-retain" class="rounded">
-                Retain
-              </label>
-            </div>
-            <div class="flex items-center gap-2">
-              <textarea id="mqtt-pub-payload" placeholder="Payload" rows="2" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 flex-1 font-mono resize-none"></textarea>
-              <div class="flex flex-col gap-1">
-                <button id="mqtt-pub-send-btn" class="px-3 py-1.5 bg-[#00d4aa]/20 hover:bg-[#00d4aa]/30 border border-[#00d4aa]/30 rounded text-xs text-[#00d4aa] font-medium transition-colors" data-i18n="mqtt.send">Send</button>
-                <button id="mqtt-pub-save-tpl-btn" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" data-i18n="mqtt.save_tpl">Tpl</button>
-              </div>
-            </div>
-            <!-- Templates -->
-            <div class="flex items-center gap-2 mt-2">
-              <select id="mqtt-pub-template-select" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none flex-1">
-                <option value="" data-i18n="mqtt.no_templates">No templates</option>
-              </select>
-              <button id="mqtt-pub-load-tpl-btn" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" data-i18n="common.load">Load</button>
-              <button id="mqtt-pub-del-tpl-btn" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-red-400/70 transition-colors" data-i18n="common.delete">Delete</button>
-            </div>
+      </div>
+    </div>
+
+    <!-- Publish drawer (slide-up) -->
+    <div id="mqtt-publish-panel" class="mqtt-publish-drawer hidden">
+      <div class="flex items-center justify-between px-4 py-1.5 cursor-pointer" id="mqtt-publish-toggle">
+        <span class="text-xs text-white/50 uppercase tracking-wider flex items-center gap-2" data-i18n="mqtt.publish">Publish</span>
+        <svg id="mqtt-publish-chevron" class="w-3 h-3 text-white/30 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M5 15l7-7 7 7"/></svg>
+      </div>
+      <div id="mqtt-publish-body" class="px-4 pb-3 hidden">
+        <div class="flex items-center gap-2 mb-2">
+          <input type="text" id="mqtt-pub-topic" placeholder="Topic" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 flex-1 font-mono">
+          <select id="mqtt-pub-qos" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none w-16">
+            <option value="0">QoS 0</option>
+            <option value="1">QoS 1</option>
+            <option value="2">QoS 2</option>
+          </select>
+          <label class="flex items-center gap-1 text-xs text-white/50">
+            <input type="checkbox" id="mqtt-pub-retain" class="rounded">
+            Retain
+          </label>
+        </div>
+        <div class="flex items-center gap-2">
+          <textarea id="mqtt-pub-payload" placeholder="Payload" rows="2" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 flex-1 font-mono resize-none"></textarea>
+          <div class="flex flex-col gap-1">
+            <button id="mqtt-pub-send-btn" class="px-3 py-1.5 bg-[#00d4aa]/20 hover:bg-[#00d4aa]/30 border border-[#00d4aa]/30 rounded text-xs text-[#00d4aa] font-medium transition-colors" data-i18n="mqtt.send">Send</button>
+            <button id="mqtt-pub-save-tpl-btn" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" data-i18n="mqtt.save_tpl">Tpl</button>
           </div>
         </div>
+        <!-- Templates -->
+        <div class="flex items-center gap-2 mt-2">
+          <select id="mqtt-pub-template-select" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none flex-1">
+            <option value="" data-i18n="mqtt.no_templates">No templates</option>
+          </select>
+          <button id="mqtt-pub-load-tpl-btn" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/50 transition-colors" data-i18n="common.load">Load</button>
+          <button id="mqtt-pub-del-tpl-btn" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-red-400/70 transition-colors" data-i18n="common.delete">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div id="mqtt-status-bar" class="mqtt-status-bar hidden">
+      <div class="flex items-center gap-4">
+        <span id="mqtt-statusbar-broker" class="flex items-center gap-1.5">
+          <span id="mqtt-statusbar-dot" class="w-2 h-2 rounded-full bg-green-500"></span>
+          <span id="mqtt-statusbar-host" class="text-white/60"></span>
+        </span>
+        <span class="text-white/15">|</span>
+        <span class="text-white/40" data-i18n="mqtt.uptime">Uptime:</span>
+        <span id="mqtt-statusbar-uptime" class="text-white/60">0:00:00</span>
+        <span class="text-white/15">|</span>
+        <span class="text-white/40" data-i18n="mqtt.last_msg">Last msg:</span>
+        <span id="mqtt-statusbar-lastmsg" class="text-white/60">—</span>
       </div>
     </div>
   </div>
