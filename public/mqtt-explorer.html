@@ -106,8 +106,8 @@
           <button id="mqtt-tree-clear" class="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-red-400/70 transition-colors" data-i18n="mqtt.clear">Clear</button>
         </div>
         <!-- Virtual scroll container -->
-        <div id="mqtt-tree-container" class="flex-1 overflow-auto font-mono text-xs">
-          <div id="mqtt-tree-viewport" class="relative" style="overflow-y: auto; height: 100%;">
+        <div id="mqtt-tree-container" class="flex-1 overflow-hidden relative font-mono text-xs">
+          <div id="mqtt-tree-viewport" class="absolute inset-0 overflow-y-auto">
             <div id="mqtt-tree-spacer"></div>
             <div id="mqtt-tree-rows"></div>
           </div>

@@ -123,8 +123,12 @@
 
     var scrollTop = container.scrollTop;
     var viewHeight = container.clientHeight;
-    var start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+    var firstVisible = Math.floor(scrollTop / ROW_HEIGHT);
+    var start = Math.max(0, firstVisible - OVERSCAN);
     var end = Math.min(flatNodes.length, Math.ceil((scrollTop + viewHeight) / ROW_HEIGHT) + OVERSCAN);
+
+    // DEBUG — remove after confirming fix
+    console.log('scrollTop:', scrollTop, 'firstVisible:', firstVisible, 'row0 translateY:', start * 28, 'totalNodes:', flatNodes.length, 'viewHeight:', viewHeight);
 
     visibleStart = start;
     visibleEnd = end;
