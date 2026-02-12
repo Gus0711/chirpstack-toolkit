@@ -39,7 +39,7 @@ function startBroadcastTimers(): void {
     }
   }, 100);
 
-  // Stats at 1 Hz
+  // Stats + names at 1 Hz
   statsTickInterval = setInterval(() => {
     for (const client of wsClients) {
       try {
@@ -58,6 +58,16 @@ function startBroadcastTimers(): void {
           topicCount: stats.topicCount,
           bytesTotal: stats.bytesTotal,
         }));
+
+        // Send names update if any new names were resolved
+        const namesUpdate = conn.consumeNamesUpdate();
+        if (namesUpdate) {
+          client.ws.send(JSON.stringify({
+            type: 'names_update',
+            devices: namesUpdate.devices,
+            applications: namesUpdate.applications,
+          }));
+        }
       } catch {
         wsClients.delete(client);
       }

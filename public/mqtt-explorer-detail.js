@@ -22,10 +22,15 @@
     payload: document.getElementById('mqtt-panel-payload'),
     history: document.getElementById('mqtt-panel-history'),
     diff: document.getElementById('mqtt-panel-diff'),
+    visualizer: document.getElementById('mqtt-panel-visualizer'),
   };
   var tabHistory = document.getElementById('mqtt-tab-history');
   var tabDiff = document.getElementById('mqtt-tab-diff');
+  var tabVisualizer = document.getElementById('mqtt-tab-visualizer');
+  var elVisualizer = document.getElementById('mqtt-detail-visualizer');
   var activeTab = 'payload';
+  var lastPayloadFormat = null;
+  var visualizerDirty = true;
 
   tabs.forEach(function (tab) {
     tab.addEventListener('click', function () {
@@ -43,6 +48,11 @@
     Object.keys(panels).forEach(function (key) {
       panels[key].classList.toggle('hidden', key !== name);
     });
+    // Lazy render visualizer
+    if (name === 'visualizer' && visualizerDirty && lastPayloadFormat === 'json' && lastPayloadText) {
+      window.MqttExplorerVisualizer.render(elVisualizer, lastPayloadText);
+      visualizerDirty = false;
+    }
   }
 
   // Copy button
@@ -89,10 +99,23 @@
 
     // Format badge
     elFormat.textContent = msg.format.toUpperCase();
+    lastPayloadFormat = msg.format;
 
     // Payload rendering
     var previousText = lastPayloadText;
     lastPayloadText = msg.payloadText;
+
+    // Visualizer dirty flag + tab indicator
+    visualizerDirty = true;
+    if (msg.format === 'json') {
+      tabVisualizer.classList.add('has-content');
+      if (activeTab === 'visualizer') {
+        window.MqttExplorerVisualizer.render(elVisualizer, msg.payloadText);
+        visualizerDirty = false;
+      }
+    } else {
+      tabVisualizer.classList.remove('has-content');
+    }
 
     if (msg.format === 'json') {
       renderJson(elPayload, msg.payloadText);
@@ -356,6 +379,8 @@
   function clear() {
     currentTopic = null;
     lastPayloadText = null;
+    lastPayloadFormat = null;
+    visualizerDirty = true;
     hasDiff = false;
     hasHistory = false;
     elEmpty.classList.remove('hidden');
@@ -364,6 +389,8 @@
     elHistorySection.classList.add('hidden');
     tabDiff.classList.remove('has-content');
     tabHistory.classList.remove('has-content');
+    tabVisualizer.classList.remove('has-content');
+    window.MqttExplorerVisualizer.clear();
     switchTab('payload');
     if (sparklineChart) {
       sparklineChart.destroy();

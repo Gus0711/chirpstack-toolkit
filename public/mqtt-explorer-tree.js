@@ -20,6 +20,10 @@
   var visibleStart = 0;
   var visibleEnd = 0;
 
+  // Name resolution caches (received from backend via names_update)
+  var deviceNames = {};      // devEui -> { name, tags }
+  var applicationNames = {}; // appId -> name
+
   // ── Scroll stability state ──
   // Track the topic at the top of the visible area so we can anchor to it
   var anchorTopic = null;       // fullTopic of the first visible node
@@ -173,6 +177,9 @@
     var segment = document.createElement('span');
     segment.className = 'tree-segment';
 
+    var resolvedName = document.createElement('span');
+    resolvedName.className = 'tree-resolved-name';
+
     var countEl = document.createElement('span');
     countEl.className = 'tree-count';
 
@@ -190,6 +197,7 @@
     el.appendChild(arrow);
     el.appendChild(activity);
     el.appendChild(segment);
+    el.appendChild(resolvedName);
     el.appendChild(countEl);
     el.appendChild(rateEl);
     el.appendChild(retainEl);
@@ -228,6 +236,7 @@
       arrow: arrow,
       activity: activity,
       segment: segment,
+      resolvedName: resolvedName,
       countEl: countEl,
       rateEl: rateEl,
       retainEl: retainEl,
@@ -288,6 +297,19 @@
     } else {
       r.segment.textContent = node.segment;
       r.segment.title = '';
+    }
+
+    // Resolved name (device/application name from ChirpStack)
+    if (node.resolvedName) {
+      r.resolvedName.textContent = node.resolvedName;
+      r.resolvedName.style.display = '';
+      r.resolvedName.title = node.segment + ' \u2192 ' + node.resolvedName;
+      // Dim the segment when we have a resolved name (show name as primary)
+      r.segment.classList.add('has-resolved-name');
+    } else {
+      r.resolvedName.textContent = '';
+      r.resolvedName.style.display = 'none';
+      r.segment.classList.remove('has-resolved-name');
     }
 
     // Count
@@ -393,9 +415,18 @@
     };
   }
 
+  // ── Names update from WS ──
+  function onNamesUpdate(devices, applications) {
+    deviceNames = devices || {};
+    applicationNames = applications || {};
+  }
+
   // ── Public API ──
   window.MqttExplorerTree = {
     onTreeUpdate: onTreeUpdate,
+    onNamesUpdate: onNamesUpdate,
     getSelectedTopic: function () { return selectedTopic; },
+    getDeviceNames: function () { return deviceNames; },
+    getApplicationNames: function () { return applicationNames; },
   };
 })();

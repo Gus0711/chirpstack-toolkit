@@ -1336,6 +1336,27 @@ select option {
   opacity: 0.7;
 }
 
+/* Resolved name (device/application name from ChirpStack) */
+.tree-resolved-name {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: 4px;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+  opacity: 0.8;
+}
+
+/* Dim segment when resolved name is shown */
+.tree-segment.has-resolved-name {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+}
+
 .mqtt-tree-row .tree-preview {
   color: rgba(255, 255, 255, 0.2);
   font-size: 10px;
@@ -1546,4 +1567,296 @@ select option {
 
 .mqtt-new-topics-badge.hidden {
   display: none;
+}
+
+/* ============================================
+   MQTT Visualizer (JSON Graph/Node View)
+   ============================================ */
+
+/* Viewport */
+.mqtt-viz-viewport {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(10, 10, 10, 0.4);
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+  width: 100%;
+  height: 100%;
+}
+
+.mqtt-viz-viewport-inner {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.mqtt-viz-node-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.mqtt-viz-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+
+/* Toolbar */
+.mqtt-viz-toolbar {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px;
+  background: rgba(24, 14, 10, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.mqtt-viz-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.mqtt-viz-toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--accent);
+}
+
+.mqtt-viz-zoom-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  min-width: 36px;
+  text-align: center;
+  user-select: none;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.mqtt-viz-toolbar-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+/* Node */
+.mqtt-viz-node {
+  position: absolute;
+  background: rgba(30, 30, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: default;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.mqtt-viz-node:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.mqtt-viz-node-root {
+  box-shadow: 0 2px 12px rgba(0, 212, 170, 0.1), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Node header */
+.mqtt-viz-node-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.mqtt-viz-node-key {
+  color: rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Type badges */
+.mqtt-viz-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.mqtt-viz-badge-object {
+  color: #569CD6;
+  background: rgba(86, 156, 214, 0.12);
+}
+
+.mqtt-viz-badge-array {
+  color: #CE9178;
+  background: rgba(206, 145, 120, 0.12);
+}
+
+/* Toggle button */
+.mqtt-viz-toggle {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+  line-height: 1;
+  padding: 0;
+}
+
+.mqtt-viz-toggle:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* Properties */
+.mqtt-viz-prop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 24px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  transition: background 0.1s;
+}
+
+.mqtt-viz-prop:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mqtt-viz-prop-key {
+  color: #9CDCFE;
+  flex-shrink: 0;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mqtt-viz-prop-key::after {
+  content: ':';
+  color: rgba(255, 255, 255, 0.2);
+  margin-left: 2px;
+}
+
+.mqtt-viz-prop-val {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mqtt-viz-val-string { color: #CE9178; }
+.mqtt-viz-val-number { color: #B5CEA8; }
+.mqtt-viz-val-boolean { color: #569CD6; }
+.mqtt-viz-val-null { color: #808080; font-style: italic; }
+
+/* Boolean check/cross icon */
+.mqtt-viz-bool-icon {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Color swatch */
+.mqtt-viz-color-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+/* Collapsed indicator */
+.mqtt-viz-collapsed-indicator {
+  padding: 0 10px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+  font-style: italic;
+}
+
+.mqtt-viz-collapsed-clickable {
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+
+.mqtt-viz-collapsed-clickable:hover {
+  color: var(--accent);
+  background: rgba(0, 212, 170, 0.05);
+}
+
+/* Connections (SVG) */
+.mqtt-viz-connection {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 1.5;
+}
+
+/* Messages & warnings */
+.mqtt-viz-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 13px;
+}
+
+.mqtt-viz-warning {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 4px;
+  color: #f59e0b;
+  font-size: 11px;
+  pointer-events: none;
 }

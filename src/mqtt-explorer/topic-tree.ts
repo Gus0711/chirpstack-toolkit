@@ -8,6 +8,9 @@ export interface TopicTreeNode {
   lastReceived: number;
   recentTimestamps: number[];
   valueHistory: Array<{ ts: number; value: number | null }>;
+  resolvedName: string | null;
+  tags: Record<string, string> | null;
+  searchText: string;
 }
 
 export interface FlatTreeNode {
@@ -21,6 +24,8 @@ export interface FlatTreeNode {
   msgPerSec: number;
   lastPayloadPreview: string;
   retain: boolean;
+  resolvedName: string | null;
+  tags: Record<string, string> | null;
 }
 
 export function createRootNode(): TopicTreeNode {
@@ -34,6 +39,9 @@ export function createRootNode(): TopicTreeNode {
     lastReceived: 0,
     recentTimestamps: [],
     valueHistory: [],
+    resolvedName: null,
+    tags: null,
+    searchText: '',
   };
 }
 
@@ -46,9 +54,10 @@ export function insertMessage(root: TopicTreeNode, topic: string, payload: Buffe
     const seg = segments[i];
     let child = current.children.get(seg);
     if (!child) {
+      const ft = segments.slice(0, i + 1).join('/');
       child = {
         segment: seg,
-        fullTopic: segments.slice(0, i + 1).join('/'),
+        fullTopic: ft,
         children: new Map(),
         messageCount: 0,
         lastMessage: null,
@@ -56,6 +65,9 @@ export function insertMessage(root: TopicTreeNode, topic: string, payload: Buffe
         lastReceived: 0,
         recentTimestamps: [],
         valueHistory: [],
+        resolvedName: null,
+        tags: null,
+        searchText: ft.toLowerCase(),
       };
       current.children.set(seg, child);
     }
@@ -148,7 +160,7 @@ export function flattenTree(
 
       // If filter is active, only include matching nodes
       if (lowerFilter) {
-        const matches = child.fullTopic.toLowerCase().includes(lowerFilter);
+        const matches = child.searchText.includes(lowerFilter);
         const hasMatchingDescendant = hasMatchInSubtree(child, lowerFilter);
         if (!matches && !hasMatchingDescendant) continue;
       }
@@ -164,6 +176,8 @@ export function flattenTree(
         msgPerSec: getMsgPerSec(child),
         lastPayloadPreview: getPayloadPreview(child),
         retain: child.lastMessage?.retain ?? false,
+        resolvedName: child.resolvedName,
+        tags: child.tags,
       });
 
       if (hasChildren && (expanded || lowerFilter)) {
@@ -178,10 +192,21 @@ export function flattenTree(
 
 function hasMatchInSubtree(node: TopicTreeNode, lowerFilter: string): boolean {
   for (const [, child] of node.children) {
-    if (child.fullTopic.toLowerCase().includes(lowerFilter)) return true;
+    if (child.searchText.includes(lowerFilter)) return true;
     if (hasMatchInSubtree(child, lowerFilter)) return true;
   }
   return false;
+}
+
+export function updateNodeSearchText(node: TopicTreeNode): void {
+  let text = node.fullTopic.toLowerCase();
+  if (node.resolvedName) text += ' ' + node.resolvedName.toLowerCase();
+  if (node.tags) {
+    for (const v of Object.values(node.tags)) {
+      text += ' ' + v.toLowerCase();
+    }
+  }
+  node.searchText = text;
 }
 
 export function getNodeByTopic(root: TopicTreeNode, topic: string): TopicTreeNode | null {
@@ -203,6 +228,9 @@ export function clearTree(root: TopicTreeNode): void {
   root.lastReceived = 0;
   root.recentTimestamps = [];
   root.valueHistory = [];
+  root.resolvedName = null;
+  root.tags = null;
+  root.searchText = '';
 }
 
 function countTopicsRecursive(node: TopicTreeNode): number {

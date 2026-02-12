@@ -138,6 +138,9 @@
                 <span data-i18n="mqtt.payload">Payload</span>
                 <span id="mqtt-detail-format" class="text-[10px] px-1.5 py-0 rounded bg-white/10 text-white/50 ml-1.5"></span>
               </button>
+              <button class="mqtt-detail-tab" data-tab="visualizer" id="mqtt-tab-visualizer">
+                <span data-i18n="mqtt.visualizer">Visualizer</span>
+              </button>
               <button class="mqtt-detail-tab" data-tab="history" id="mqtt-tab-history">
                 <span data-i18n="mqtt.history">History</span>
               </button>
@@ -150,7 +153,7 @@
               </button>
             </div>
             <!-- Tab panels -->
-            <div class="flex-1 overflow-auto">
+            <div class="flex-1 overflow-auto flex flex-col">
               <div id="mqtt-panel-payload" class="mqtt-detail-panel p-4">
                 <div id="mqtt-detail-payload" class="mqtt-json-view text-xs overflow-auto p-3 bg-black/20 rounded font-mono"></div>
               </div>
@@ -167,6 +170,9 @@
                   <div id="mqtt-detail-diff" class="mqtt-diff-container text-xs overflow-auto rounded font-mono"></div>
                 </div>
                 <div id="mqtt-detail-diff-empty" class="flex items-center justify-center py-8 text-white/20 text-xs">No changes detected yet</div>
+              </div>
+              <div id="mqtt-panel-visualizer" class="mqtt-detail-panel hidden" style="flex:1;min-height:0;overflow:hidden;">
+                <div id="mqtt-detail-visualizer" style="width:100%;height:100%;"></div>
               </div>
             </div>
           </div>
@@ -231,6 +237,7 @@
 
   <script src="mqtt-explorer.js"></script>
   <script src="mqtt-explorer-tree.js"></script>
+  <script src="mqtt-explorer-visualizer.js"></script>
   <script src="mqtt-explorer-detail.js"></script>
   <script src="mqtt-explorer-publish.js"></script>
 </body>

@@ -596,6 +596,8 @@
       'mqtt.retained': 'Retained',
       'mqtt.uptime': 'Uptime:',
       'mqtt.last_msg': 'Last msg:',
+      'mqtt.visualizer': 'Visualizer',
+      'mqtt.visualizer_not_json': 'Only JSON payloads can be visualized',
     },
 
     fr: {
@@ -1182,6 +1184,8 @@
       'mqtt.retained': 'Retenu',
       'mqtt.uptime': 'Uptime :',
       'mqtt.last_msg': 'Dernier msg :',
+      'mqtt.visualizer': 'Visualiseur',
+      'mqtt.visualizer_not_json': 'Seuls les payloads JSON peuvent \u00eatre visualis\u00e9s',
     },
   };
 

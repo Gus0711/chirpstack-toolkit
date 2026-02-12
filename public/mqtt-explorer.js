@@ -187,6 +187,11 @@
               window.MqttExplorerDetail.onMessage(msg);
             }
             break;
+          case 'names_update':
+            if (window.MqttExplorerTree) {
+              window.MqttExplorerTree.onNamesUpdate(msg.devices || {}, msg.applications || {});
+            }
+            break;
         }
       } catch (e) { /* ignore */ }
     };

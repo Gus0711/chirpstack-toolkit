@@ -1,9 +1,12 @@
 import mqtt from 'mqtt';
 import type { MqttClient } from 'mqtt';
 import type { MqttExplorerConnectParams, MqttExplorerStats } from '../types.js';
-import { createRootNode, insertMessage, clearTree, getTreeStats, type TopicTreeNode } from './topic-tree.js';
+import { createRootNode, insertMessage, clearTree, getTreeStats, getNodeByTopic, updateNodeSearchText, type TopicTreeNode } from './topic-tree.js';
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+
+// Regex for ChirpStack event topics: application/{appId}/device/{devEui}/event/{type}
+const CS_TOPIC_RE = /^application\/([^/]+)\/device\/([^/]+)\/event\/(.+)$/;
 
 export class MqttExplorerConnection {
   id: string;
@@ -18,10 +21,16 @@ export class MqttExplorerConnection {
   bytesTotal: number = 0;
   onMessage: ((topic: string, payload: Buffer, qos: number, retain: boolean) => void) | null = null;
   onStatusChange: ((status: ConnectionStatus, error?: string) => void) | null = null;
+  onNamesUpdate: ((devices: Record<string, { name: string; tags: Record<string, string> }>, applications: Record<string, string>) => void) | null = null;
+
+  // Name resolution caches
+  deviceNames: Map<string, { name: string; tags: Record<string, string> }> = new Map();
+  applicationNames: Map<string, string> = new Map();
 
   private msgPerSecCounter: number = 0;
   private msgPerSecValue: number = 0;
   private statsInterval: ReturnType<typeof setInterval> | null = null;
+  private namesDirty: boolean = false;
 
   constructor(id: string, host: string, port: number) {
     this.id = id;
@@ -70,6 +79,9 @@ export class MqttExplorerConnection {
       if (stats.topicCount < 10000) {
         insertMessage(this.topicTree, topic, payload, packet.qos, packet.retain ?? false);
       }
+
+      // Extract ChirpStack device/application names from payloads
+      this.extractNamesFromPayload(topic, payload);
 
       if (this.onMessage) {
         try {
@@ -160,6 +172,85 @@ export class MqttExplorerConnection {
     this.bytesTotal = 0;
     this.msgPerSecCounter = 0;
     this.msgPerSecValue = 0;
+    this.deviceNames.clear();
+    this.applicationNames.clear();
+    this.namesDirty = false;
+  }
+
+  private extractNamesFromPayload(topic: string, payload: Buffer): void {
+    const m = CS_TOPIC_RE.exec(topic);
+    if (!m) return;
+
+    const appId = m[1];
+    const devEui = m[2];
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(payload.toString('utf-8'));
+    } catch { return; }
+
+    // Extract from deviceInfo (ChirpStack v4 format)
+    const di = parsed.deviceInfo as Record<string, unknown> | undefined;
+    if (!di) return;
+
+    const deviceName = di.deviceName as string | undefined;
+    const applicationName = di.applicationName as string | undefined;
+    const tags = di.tags as Record<string, string> | undefined;
+
+    let changed = false;
+
+    if (deviceName && devEui) {
+      const prev = this.deviceNames.get(devEui);
+      const newTags = tags && typeof tags === 'object' ? tags : {};
+      if (!prev || prev.name !== deviceName || JSON.stringify(prev.tags) !== JSON.stringify(newTags)) {
+        this.deviceNames.set(devEui, { name: deviceName, tags: newTags });
+        changed = true;
+
+        // Update the devEui node in the trie
+        const devNode = getNodeByTopic(this.topicTree, `application/${appId}/device/${devEui}`);
+        if (devNode) {
+          devNode.resolvedName = deviceName;
+          devNode.tags = newTags;
+          updateNodeSearchText(devNode);
+        }
+        // Also update all child nodes searchText (they inherit for search)
+      }
+    }
+
+    if (applicationName && appId) {
+      const prev = this.applicationNames.get(appId);
+      if (prev !== applicationName) {
+        this.applicationNames.set(appId, applicationName);
+        changed = true;
+
+        // Update the application node in the trie
+        const appNode = getNodeByTopic(this.topicTree, `application/${appId}`);
+        if (appNode) {
+          appNode.resolvedName = applicationName;
+          updateNodeSearchText(appNode);
+        }
+      }
+    }
+
+    if (changed) {
+      this.namesDirty = true;
+    }
+  }
+
+  /** Returns pending names update and resets dirty flag. Returns null if no updates. */
+  consumeNamesUpdate(): { devices: Record<string, { name: string; tags: Record<string, string> }>; applications: Record<string, string> } | null {
+    if (!this.namesDirty) return null;
+    this.namesDirty = false;
+
+    const devices: Record<string, { name: string; tags: Record<string, string> }> = {};
+    for (const [k, v] of this.deviceNames) {
+      devices[k] = v;
+    }
+    const applications: Record<string, string> = {};
+    for (const [k, v] of this.applicationNames) {
+      applications[k] = v;
+    }
+    return { devices, applications };
   }
 
   getStats(): MqttExplorerStats {
